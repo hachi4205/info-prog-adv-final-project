@@ -1,6 +1,6 @@
 import os
-import threading
 import time
+import threading
 
 # Helpers
 def clr():
@@ -16,22 +16,22 @@ def deadline(room):
         return "마감됨"
     return f"{mins}분 후"
 
+# Screen 1 - Main Menu (clear screen, show room list)
 # Single-line summary of a room for the main menu list
-def _format_room_line(room):
-    host = getattr(room, 'host', '?')
-    current = len(getattr(room, 'participants', []))
-    max_participants = getattr(room, 'max_participants', '?')
-    status = getattr(room, 'status', lambda: '[?]')() 
-    meal_type = getattr(room, 'meal_type', '?')
+def format_room_line(room):
+    room_id    = getattr(room, 'room_id', '?')
+    name       = getattr(room, 'restaurant', '?')
+    host       = getattr(room, 'host', '?')
+    current    = len(getattr(room, 'participants', []))
+    target     = getattr(room, 'target_count', '?')   # spec: current/target
+    status     = getattr(room, 'status', lambda: '[?]')()
+    meal_type  = getattr(room, 'meal_type', '?')
     deadline_str = deadline(room)
-    room_id = getattr(room, 'room_id', '?')
-    name = getattr(room, 'restaurant', '?')
     return (
         f" [{room_id}] {name} | 방장: {host} | "
-        f"참여: {current}/{max_participants} | {status} | {meal_type} | 마감: {deadline_str}"
+        f"{current}/{target} | {status} | {meal_type} | 마감: {deadline_str}"
     )
     
-# Screen 1 - Main Menu (clear screen, show room list)
 def main_menu(rooms: list, username: str = ""):
     clr()
     if username:
@@ -52,8 +52,7 @@ def main_menu(rooms: list, username: str = ""):
     print("0. 종료")
     print("> 입력: ", end="", flush=True)
     
-
-# Screen 2 - Room Detail
+# Screen 2 - Room Detail (clear screen, show menu list, chat, and room actions)
 def room_detail(room, username: str = ""):
     clr()
     room_id = getattr(room, 'room_id', '?')
@@ -110,25 +109,50 @@ def create_room_form(defaults: dict = None):
     if defaults:
         print("(엔터를 누르면 기본값으로 설정됩니다.)\n")
         
-    def prompt(label, key):
+    def prompt(label, key, cast=str):
         default_val = d.get(key)
         if default_val is not None:
             raw = input(f"> {label} (기본값 = {default_val}): ").strip()
             return raw if raw else str(default_val)
         else:
-            return input(f"> {label}: ").strip()
-        
-    results['restaurant'] = prompt("식당명", 'restaurant')
-    results['max_participants'] = prompt("목표 인원", 'max_participants')
-    results['use_max_participants'] = prompt("최대 인원 설정하시겠습니까? (Y/N)", 'use_max_participants')
+            value = input(f"> {label}: ").strip()
+        return cast(value)
     
-    if results['use_max_participants'].upper() == 'Y':
-        results['max_participants'] = prompt("최대 인원", 'max_participants')
+    # 1. Restaurant name  
+    results['restaurant'] = prompt("식당명", 'restaurant')
+    
+    # 2. Target count
+    results['target_count'] = prompt("목표 인원", 'target_count', cast=int)
+    
+    # 3. Optional max participants - ask the yes/no question first
+    if d.get('max_participants') is not None:
+        default_use_max = "Y"
+    else:
+        default_use_max = "N"
+    use_max_raw = input(
+        f"> 최대 인원 설정하시겠습니까? (Y/N)"
+        + (f" (기본값 = {default_use_max}): " if defaults else ": ")
+    ).strip()
+    
+    if use_max_raw:
+        use_max = use_max_raw
+    else:
+        use_max = default_use_max
+
+    use_max = use_max.upper()
+    
+    if use_max == 'Y':
+        results['max_participants'] = prompt("최대 인원", 'max_participants', cast=int)
     else:
         results['max_participants'] = None
-        
-    results['meal_type'] = prompt("식사 형태 (매장/포장/배달)", 'meal_type')
-    results['deadline_minutes'] = prompt("마감 시간 (현재로부터 몇 분)", 'deadline_minutes')   
+
+    # 4. Meal type
+    results['meal_type'] = prompt("식사 유형 (배달/포장/배달", 'meal_type')
+    
+    # 5. Deadline (minutes)
+    results['deadline_minutes'] = prompt("마감 시간 (현재로부터 몇 분)", 'deadline_minutes', cast=int)
+
+    # 6. Meal time 
     results['meal_time'] = prompt("식사 시간", 'meal_time')
     
     return results
@@ -147,11 +171,11 @@ def clone_menu_selection(menu_items: list):
 
 # Screen 5 - Complete Room
 def complete_room(room):
-    total_price = getattr(room, 'total_price', lambda: 0)()
-    participants = getattr(room, 'participants', [])
-    meal_type = getattr(room, 'meal_type', '')
-    count = len(participants)
-    
+    total      = result['total']
+    count      = result['count']
+    per_person = result['per_person']
+    meal_type  = result['meal_type']
+ 
     print("\n=== 완료 ===")
     print(f"총액: {total:,}원", end="")
     if meal_type == '배달':
@@ -159,4 +183,70 @@ def complete_room(room):
     print(f" / {count}명")
     print(f"1인당: {per_person:,}원 (소수점 올림)")
     print("===\n")
+
+# Error/ info messages
+def show_error(message: str):
+    print(f"[오류] {message}")
+    
+def show_info(message: str):
+    print(f"[안내] {message}")
+
+# Auto-Refresh Thread
+class RefreshController:
+    def __init__(self, interval: int = 3):
+        self._interval = interval
+        self._render_fn = None          # The function to call on each tick
+        self._stop_event = threading.Event()   # Set → thread exits its loop
+        self._pause_event = threading.Event()  # Set → thread is allowed to render
+        self._thread = None
+ 
+        # Start paused — nothing renders until start() is called
+        self._pause_event.clear()
+        
+    # Public API 
+    def start(self, render_fn):
+        self._render_fn = render_fn
+        if self._thread and self._thread.is_alive():
+            self._stop_event.clear()
+            self._pause_event.set()
+            return
+        
+        # Fresh start
+        self._stop_event.clear()
+        self._pause_event.set()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+ 
+    def pause(self):
+        self._pause_event.clear()
+        
+    def resume(self):
+        self._pause_event.set()
+    
+    def stop(self):
+        self._stop_event.set()
+        self._pause_event.set()  # Unpause to allow thread to exit if it was paused
+        if self._thread:
+            self._thread.join(timeout = self._interval + 1)
+        self._thread = None
+        
+    # Internal loop run by the thread
+    def _loop(self):
+        while not self._stop_event.is_set():
+            self._pause_event.wait()
+ 
+            
+            if self._stop_event.is_set():
+                break
+ 
+            if self._render_fn:
+                try:
+                    self._render_fn()
+                except Exception:
+                    pass
+ 
+            for _ in range(self._interval * 10):
+                if self._stop_event.is_set() or not self._pause_event.is_set():
+                    break
+                time.sleep(0.1)
     
