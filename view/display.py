@@ -43,7 +43,7 @@ def main_menu(rooms: list, username: str = ""):
         print("  (아직 모집 중인 방이 없습니다.)")
     else:
         for room in rooms:
-            print(_format_room_line(room))
+            print(format_room_line(room))
  
     print("------------------------------------")
     print("1. 방 만들기")
@@ -147,7 +147,7 @@ def create_room_form(defaults: dict = None):
         results['max_participants'] = None
 
     # 4. Meal type
-    results['meal_type'] = prompt("식사 유형 (배달/포장/배달", 'meal_type')
+    results['meal_type'] = prompt("식사 유형 (배달/포장/배달): ", 'meal_type')
     
     # 5. Deadline (minutes)
     results['deadline_minutes'] = prompt("마감 시간 (현재로부터 몇 분)", 'deadline_minutes', cast=int)
@@ -170,7 +170,7 @@ def clone_menu_selection(menu_items: list):
     return input("\n> 선택: ").strip()
 
 # Screen 5 - Complete Room
-def complete_room(room):
+def complete_room(result):
     total      = result['total']
     count      = result['count']
     per_person = result['per_person']
