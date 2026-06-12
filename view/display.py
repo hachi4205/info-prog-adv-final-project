@@ -4,8 +4,11 @@ import threading
 
 # Helpers
 def clr():
-    # Clear the terminal screen
-    os.system("cls" if os.name == "nt" else "clear")
+    # Clear the terminal screen and the scrollback buffer
+    if os.name == "nt":
+        os.system("cls")
+    else:
+        os.system("printf '\\033c\\033[3J'")
 
 # Read room.deadline and format it for display
 def deadline(room):
