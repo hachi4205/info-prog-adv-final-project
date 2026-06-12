@@ -62,6 +62,8 @@ class Room:
     
     def add_participant(self, username):
         """Add a user to the room"""
+        if username == self.host:
+            return False 
         if username in self.participants:
             return False
         if self.max_participants is not None and len(self.participants) >= self.max_participants:
