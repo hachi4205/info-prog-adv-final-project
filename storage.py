@@ -6,7 +6,6 @@ from googleapiclient.discovery import build
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# TODO: replace with your own spreadsheet id and sheet/tab name
 SPREADSHEET_ID = "1h1IKXd1iqwjmed9LamRZheDm9xn6Ry7qomMUkgSKpyQ"
 SHEET_NAME = "Sheet1"
 
