@@ -29,7 +29,7 @@ class Room:
         self.deadline_minutes = deadline_minutes
         self.meal_time = meal_time
         self.max_participants = max_participants
-        self.participants = [host]
+        self.participants = []
         self.menu_items = []
         self.chat_messages = []
         self._status = "모집중"

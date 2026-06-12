@@ -25,7 +25,7 @@ class Controller:
                     continue
                 return value
             except ValueError:
-                display.show_error("숫자만 입력해 주세요!")
+                display.show_error("숫자를 입력해 주세요.")
 
     def sync_from_cloud(self):
         try:
@@ -87,9 +87,9 @@ class Controller:
             self.current_screen = "room"
             self.current_room_id = room_id
         elif result == "no_room":
-            display.show_error("존재하지 않는 방입니다.")
+            display.show_error("존재하지 않는 방 번호입니다.")
         elif result == "full":
-            display.show_error("인원이 가득 찼습니다.")
+            display.show_error("최대 인원이 초과되어 참여할 수 없습니다.")
         self.refresher.resume()
 
     def handle_clone_room(self):
