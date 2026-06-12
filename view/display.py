@@ -147,7 +147,7 @@ def create_room_form(defaults: dict = None):
         results['max_participants'] = None
 
     # 4. Meal type
-    results['meal_type'] = prompt("식사 유형 (배달/포장/배달): ", 'meal_type')
+    results['meal_type'] = prompt("식사 유형 (매장/포장/배달): ", 'meal_type')
     
     # 5. Deadline (minutes)
     results['deadline_minutes'] = prompt("마감 시간 (현재로부터 몇 분)", 'deadline_minutes', cast=int)
