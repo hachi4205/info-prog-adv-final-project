@@ -85,15 +85,17 @@ class Controller:
         
         room_id = self.get_valid_integer("참여할 방 번호 입력: ", min_val=1)
         result = self.model.join_room(room_id, self.current_user)
-        
+
         if result == "ok":
             self.sync_to_cloud()
             self.current_screen = "room"
             self.current_room_id = room_id
         elif result == "no_room":
             display.show_error("존재하지 않는 방 번호입니다.")
+            input("계속하려면 엔터를 누르세요...")
         elif result == "full":
             display.show_error("최대 인원이 초과되어 참여할 수 없습니다.")
+            input("계속하려면 엔터를 누르세요...")
         self.refresher.resume()
 
     def handle_clone_room(self):
