@@ -9,6 +9,8 @@ class Controller:
         self.refresher = display.RefreshController(interval=3)
         self.current_screen = "main"
         self.current_room_id = None
+        self._sync_every = 3    
+        self._tick = 0          
 
     def get_valid_integer(self, prompt_message, min_val=None, max_val=None):
         while True:
@@ -49,7 +51,9 @@ class Controller:
             display.show_error(f"클라우드 저장 실패: {e}")
 
     def render_current_view(self):
-        self.sync_from_cloud()
+        if self._tick % self._sync_every == 0:
+            self.sync_from_cloud()
+        self._tick += 1
         if self.current_screen == "main":
             rooms = self.model.get_all_rooms()
             display.main_menu(rooms, self.current_user)
