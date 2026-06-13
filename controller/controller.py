@@ -48,7 +48,7 @@ class Controller:
             all_rooms = self.model.get_all_rooms()
             storage.save_rooms(all_rooms)
         except Exception as e:
-            display.show_error(f"클라우드 저장 실패: {e}")
+            print(f"\n[범인 발견] 구글 동기화 에러: {e}")
 
     def render_current_view(self):
         if self._tick % self._sync_every == 0:
