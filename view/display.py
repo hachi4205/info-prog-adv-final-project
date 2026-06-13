@@ -114,12 +114,17 @@ def create_room_form(defaults: dict = None):
         
     def prompt(label, key, cast=str):
         default_val = d.get(key)
-        if default_val is not None:
-            raw = input(f"> {label} (기본값 = {default_val}): ").strip()
-            return raw if raw else str(default_val)
-        else:
-            value = input(f"> {label}: ").strip()
-        return cast(value)
+        while True:  
+            if default_val is not None:
+                raw = input(f"> {label} (기본값 = {default_val}): ").strip()
+                value = raw if raw else str(default_val)
+            else:
+                value = input(f"> {label}: ").strip()
+            
+            try:
+                return cast(value)  
+            except ValueError:
+                print("[오류] 올바른 형식(숫자)으로 입력해 주세요.")  
     
     # 1. Restaurant name  
     results['restaurant'] = prompt("식당명", 'restaurant')
