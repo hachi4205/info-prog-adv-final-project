@@ -88,7 +88,7 @@ class Controller:
         room_id = self.get_valid_integer("참여할 방 번호 입력: ", min_val=1)
 
         target = self.model.get_room(room_id)
-        if target and target.host == self.current_user:
+        if target and (target.host == self.current_user or self.current_user in target.participants):
             self.current_screen = "room"
             self.current_room_id = room_id
             self.refresher.resume()
